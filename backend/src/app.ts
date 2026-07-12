@@ -5,6 +5,7 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.routes";
 import vehicleRoutes from "./routes/vehicle.routes";
 import driverRoutes from "./routes/driver.routes";
+import tripRoutes from "./routes/trip.routes";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/drivers", driverRoutes);
+app.use("/api/trips", tripRoutes);
 // Health Check
 app.get("/", (req, res) => {
     res.status(200).json({
