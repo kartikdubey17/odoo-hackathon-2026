@@ -346,7 +346,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
     <div class="login-roles">
       <div class="lbl">One login, four roles</div>
       <div class="role-row"><span class="role-dot"></span>Fleet Manager</div>
-      <div class="role-row"><span class="role-dot"></span>Dispatcher</div>
+      <div class="role-row"><span class="role-dot"></span>Driver</div>
       <div class="role-row"><span class="role-dot"></span>Safety Officer</div>
       <div class="role-row"><span class="role-dot"></span>Financial Analyst</div>
     </div>
@@ -367,7 +367,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
       <div class="field">
         <label>Role (RBAC)</label>
         <select id="login-role">
-          <option>Dispatcher</option>
+          <option>Driver</option>
           <option>Fleet Manager</option>
           <option>Safety Officer</option>
           <option>Financial Analyst</option>
@@ -382,7 +382,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
       <div class="login-scope">
         <strong>Access is scoped by role after login:</strong><br>
         • Fleet Manager → Fleet, Maintenance<br>
-        • Dispatcher → Dashboard, Trips<br>
+        • Driver → Dashboard, Trips<br>
         • Safety Officer → Drivers, Compliance<br>
         • Financial Analyst → Fuel &amp; Expenses, Analytics
       </div>
@@ -406,7 +406,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
       </div>
       <div class="topbar-right">
         <span class="user-name" id="topbar-name">Raven K.</span>
-        <span class="role-pill" id="topbar-role">Dispatcher</span>
+        <span class="role-pill" id="topbar-role">Driver</span>
         <div class="avatar" id="topbar-avatar">RK</div>
       </div>
     </div>
@@ -608,7 +608,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
             <thead><tr><th>Role</th><th style="text-align:center;">Fleet</th><th style="text-align:center;">Drivers</th><th style="text-align:center;">Trips</th><th style="text-align:center;">Fuel/Exp.</th><th style="text-align:center;">Analytics</th></tr></thead>
             <tbody>
               <tr><td>Fleet Manager</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td></tr>
-              <tr><td>Dispatcher</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
+              <tr><td>Driver</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
               <tr><td>Safety Officer</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
               <tr><td>Financial Analyst</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-yes">✓</td></tr>
             </tbody>
@@ -687,20 +687,127 @@ td.mono, span.mono{font-family:var(--font-mono);}
 <div id="toast"><span class="dot"></span><span id="toast-msg"></span></div>
 
 <script>
+/* ================================================================
+   API LAYER
+   All backend calls go through api(). No component/render function
+   should ever call fetch() or axios directly — add a new function
+   here instead and call that.
+   ================================================================ */
+const API_BASE = 'http://localhost:5000/api'; // TODO: confirm backend port with teammate
+
+async function api(path, { method = 'GET', body, auth = true } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) {
+    const token = localStorage.getItem('token');
+    if (token) headers.Authorization = 'Bearer ' + token;
+  }
+
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    throw { status: 0, error: 'NETWORK_ERROR', message: 'Could not reach the server. Is the backend running?' };
+  }
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    if (!location.href.includes('login')) {
+      toast('Session expired — please log in again', true);
+    }
+    setTimeout(() => location.reload(), 800);
+    throw { status: 401, error: 'UNAUTHENTICATED', message: 'Session expired' };
+  }
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // empty body (e.g. some 204s) — leave data as null
+  }
+
+  if (!res.ok) {
+    throw {
+      status: res.status,
+      error: data?.error || 'REQUEST_FAILED',
+      message: data?.message || `Request failed with status ${res.status}`,
+    };
+  }
+
+  return data;
+}
+
+/* Thin per-resource helpers — keep these as the only place that knows
+   the actual URL paths. Render functions call these, never api() directly. */
+const authApi = {
+  login: (email, password) => api('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
+};
+const dashboardApi = {
+  get: () => api('/dashboard'),
+};
+const vehiclesApi = {
+  list: (params = '') => api('/vehicles' + params),
+  available: (cargoWeightKg) => api('/vehicles/available' + (cargoWeightKg ? `?cargoWeightKg=${cargoWeightKg}` : '')),
+  create: (payload) => api('/vehicles', { method: 'POST', body: payload }),
+  update: (id, payload) => api(`/vehicles/${id}`, { method: 'PATCH', body: payload }),
+};
+const driversApi = {
+  list: (params = '') => api('/drivers' + params),
+  available: () => api('/drivers/available'),
+  create: (payload) => api('/drivers', { method: 'POST', body: payload }),
+  update: (id, payload) => api(`/drivers/${id}`, { method: 'PATCH', body: payload }),
+};
+const tripsApi = {
+  list: (params = '') => api('/trips' + params),
+  create: (payload) => api('/trips', { method: 'POST', body: payload }),
+  dispatch: (id) => api(`/trips/${id}/dispatch`, { method: 'POST' }),
+  complete: (id, payload) => api(`/trips/${id}/complete`, { method: 'POST', body: payload }),
+  cancel: (id) => api(`/trips/${id}/cancel`, { method: 'POST' }),
+};
+const maintenanceApi = {
+  list: () => api('/maintenance'),
+  create: (payload) => api('/maintenance', { method: 'POST', body: payload }),
+  close: (id) => api(`/maintenance/${id}/close`, { method: 'PATCH' }),
+};
+const fuelApi = {
+  list: () => api('/fuel'),
+  create: (payload) => api('/fuel', { method: 'POST', body: payload }),
+};
+const expensesApi = {
+  list: () => api('/expenses'),
+  create: (payload) => api('/expenses', { method: 'POST', body: payload }),
+};
+const reportsApi = {
+  summary: (params = '') => api('/reports/summary' + params),
+  // CSV needs the auth header, so a plain <a href> won't work — see exportCSV() below.
+  exportCsv: async (params = '') => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + '/reports/export.csv' + params, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) throw { status: res.status, message: 'Export failed' };
+    return res.blob();
+  },
+};
+
 /* ---------------- STATE ---------------- */
 const NAV_ITEMS = [
-  {id:'dashboard', label:'Dashboard', roles:['Dispatcher','Fleet Manager','Safety Officer','Financial Analyst']},
+  {id:'dashboard', label:'Dashboard', roles:['Driver','Fleet Manager','Safety Officer','Financial Analyst']},
   {id:'fleet', label:'Fleet', roles:['Fleet Manager','Financial Analyst']},
   {id:'drivers', label:'Drivers', roles:['Safety Officer']},
-  {id:'trips', label:'Trips', roles:['Dispatcher']},
+  {id:'trips', label:'Trips', roles:['Driver']},
   {id:'maintenance', label:'Maintenance', roles:['Fleet Manager']},
   {id:'fuel', label:'Fuel & Expenses', roles:['Financial Analyst']},
   {id:'analytics', label:'Analytics', roles:['Financial Analyst','Fleet Manager']},
-  {id:'settings', label:'Settings', roles:['Dispatcher','Fleet Manager','Safety Officer','Financial Analyst']},
+  {id:'settings', label:'Settings', roles:['Driver','Fleet Manager','Safety Officer','Financial Analyst']},
 ];
 
 let state = {
-  currentRole: 'Dispatcher',
+  currentRole: 'Driver',
   vehicles: [
     {reg:'GJ01AB4521', name:'VAN-05', type:'Van', capacity:500, odometer:74000, cost:620000, status:'Available'},
     {reg:'GJ01AB9981', name:'TRUCK-11', type:'Truck', capacity:5000, odometer:182000, cost:2450000, status:'On Trip'},
@@ -738,7 +845,7 @@ let state = {
   ]
 };
 
-const ROLE_INIT = {'Fleet Manager':'FM','Dispatcher':'RK','Safety Officer':'SO','Financial Analyst':'FA'};
+const ROLE_INIT = {'Fleet Manager':'FM','Driver':'RK','Safety Officer':'SO','Financial Analyst':'FA'};
 
 /* ---------------- LOGIN ---------------- */
 function doLogin(){
