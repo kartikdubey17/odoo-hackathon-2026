@@ -8,6 +8,7 @@ import driverRoutes from "./routes/driver.routes";
 import tripRoutes from "./routes/trip.routes";
 import maintenanceRoutes from "./routes/maintenance.routes";
 import fuelRoutes from "./routes/fuel.routes";
+import expenseRoutes from "./routes/expense.routes";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/fuel", fuelRoutes);
+app.use("/api/expenses", expenseRoutes);
 // Health Check
 app.get("/", (req, res) => {
     res.status(200).json({
