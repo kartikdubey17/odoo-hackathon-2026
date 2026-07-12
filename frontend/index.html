@@ -771,19 +771,12 @@ function defaultViewFor(role){
 function buildNav(){
   const list = document.getElementById('nav-list');
   list.innerHTML='';
-  NAV_ITEMS.forEach(item=>{
-    const allowed = item.roles.includes(state.currentRole);
+  NAV_ITEMS.filter(item => item.roles.includes(state.currentRole)).forEach(item=>{
     const el = document.createElement('div');
     el.className='nav-item';
     el.id='nav-'+item.id;
     el.innerHTML = `<span class="stop"></span><span>${item.label}</span>`;
-    if(allowed){
-      el.onclick = ()=>navigate(item.id);
-    } else {
-      el.style.opacity = .35;
-      el.style.cursor = 'not-allowed';
-      el.title = 'Not permitted for '+state.currentRole;
-    }
+    el.onclick = ()=>navigate(item.id);
     list.appendChild(el);
   });
 }
