@@ -708,7 +708,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
    should ever call fetch() or axios directly — add a new function
    here instead and call that.
    ================================================================ */
-const API_BASE = 'http://localhost:5000/api'; // TODO: confirm backend port with teammate
+const API_BASE = 'http://localhost:5050/api'; // TODO: confirm backend port with teammate
 
 async function api(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
