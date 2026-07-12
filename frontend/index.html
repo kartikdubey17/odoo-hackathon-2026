@@ -486,7 +486,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
         </div>
       </div>
       <div class="two-col">
-        <div class="panel">
+        <div class="panel" id="create-trip-panel">
           <div class="panel-title">Create Trip</div>
           <div class="field"><label>Source</label><input id="trip-source" value="Gandhinagar Depot"></div>
           <div class="field"><label>Destination</label><input id="trip-dest" value="Ahmedabad Hub"></div>
@@ -500,14 +500,14 @@ td.mono, span.mono{font-family:var(--font-mono);}
           <div class="field"><label>Planned Distance (km)</label><input id="trip-distance" type="number" value="38"></div>
           <div id="trip-validation" class="validation-box">Select a vehicle to check capacity.</div>
           <div class="modal-actions">
-            <button class="btn btn-amber" id="trip-dispatch-btn" onclick="dispatchTrip()" disabled>Dispatch</button>
-            <button class="btn btn-ghost" onclick="resetTripForm()">Cancel</button>
+            <button class="btn btn-amber" id="trip-dispatch-btn" onclick="createTripHandler()" disabled>Create Trip</button>
+            <button class="btn btn-ghost" onclick="resetTripForm()">Reset</button>
           </div>
         </div>
         <div class="panel">
           <div class="panel-title">Live Board</div>
           <div id="live-board"></div>
-          <div class="rule-flow" style="margin-top:6px;">On Complete: odometer <span class="arrow">→</span> fuel log <span class="arrow">→</span> expenses <span class="arrow">→</span> vehicle &amp; driver Available</div>
+          <div class="rule-flow" style="margin-top:6px;">Draft <span class="arrow">— Fleet Manager dispatches →</span> Dispatched <span class="arrow">— driver/Fleet Manager completes →</span> Completed (vehicle &amp; driver → Available)</div>
         </div>
       </div>
     </div>
@@ -524,18 +524,15 @@ td.mono, span.mono{font-family:var(--font-mono);}
           <div class="field"><label>Service Type</label><input id="maint-type" value="Oil Change"></div>
           <div class="field"><label>Cost</label><input id="maint-cost" type="number" value="2500"></div>
           <div class="field"><label>Date</label><input id="maint-date" type="date" value="2026-07-07"></div>
-          <div class="field"><label>Status</label>
-            <select id="maint-status"><option>Active</option><option>Completed</option></select>
-          </div>
           <button class="btn btn-amber btn-block" onclick="saveMaintenance()">Save</button>
-          <div class="rule-flow" style="margin-top:18px;">Available <span class="arrow">— creating active record →</span> In Shop</div>
+          <div class="rule-flow" style="margin-top:18px;">Available <span class="arrow">— creating record (auto Active) →</span> In Shop</div>
           <div class="rule-flow">In Shop <span class="arrow">— closing record (not retired) →</span> Available</div>
           <div style="font-size:12px;color:var(--ink-faint);margin-top:8px;">Note: In Shop vehicles are removed from the dispatch pool.</div>
         </div>
         <div class="panel">
           <div class="panel-title">Service Log</div>
           <table>
-            <thead><tr><th>Vehicle</th><th>Service</th><th>Cost</th><th>Status</th></tr></thead>
+            <thead><tr><th>Vehicle</th><th>Service</th><th>Cost</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="service-log-body"></tbody>
           </table>
         </div>
@@ -561,7 +558,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
       <div class="panel">
         <div class="panel-title">Other Expenses (Toll / Misc)</div>
         <table>
-          <thead><tr><th>Trip</th><th>Vehicle</th><th>Toll</th><th>Other</th><th>Maint. (Linked)</th><th>Total</th></tr></thead>
+          <thead><tr><th>Trip</th><th>Vehicle</th><th>Type</th><th>Amount</th><th>Date</th></tr></thead>
           <tbody id="expense-body"></tbody>
         </table>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--hair);">
@@ -605,14 +602,15 @@ td.mono, span.mono{font-family:var(--font-mono);}
         <div class="panel">
           <div class="panel-title">Role-Based Access (RBAC)</div>
           <table>
-            <thead><tr><th>Role</th><th style="text-align:center;">Fleet</th><th style="text-align:center;">Drivers</th><th style="text-align:center;">Trips</th><th style="text-align:center;">Fuel/Exp.</th><th style="text-align:center;">Analytics</th></tr></thead>
+            <thead><tr><th>Role</th><th style="text-align:center;">Fleet</th><th style="text-align:center;">Drivers</th><th style="text-align:center;">Trips</th><th style="text-align:center;">Fuel/Exp.</th><th style="text-align:center;">Reports</th></tr></thead>
             <tbody>
-              <tr><td>Fleet Manager</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td></tr>
-              <tr><td>Driver</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
-              <tr><td>Safety Officer</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
-              <tr><td>Financial Analyst</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">✓</td><td class="rbac-cell rbac-yes">✓</td></tr>
+              <tr><td>Fleet Manager</td><td class="rbac-cell rbac-yes">create</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-yes">create/dispatch</td><td class="rbac-cell rbac-yes">create</td><td class="rbac-cell rbac-yes">view</td></tr>
+              <tr><td>Driver</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-view">view/complete own</td><td class="rbac-cell rbac-no">–</td><td class="rbac-cell rbac-no">–</td></tr>
+              <tr><td>Safety Officer</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-yes">create</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-no">–</td></tr>
+              <tr><td>Financial Analyst</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-view">view</td><td class="rbac-cell rbac-yes">view</td></tr>
             </tbody>
           </table>
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:8px;">This reflects the backend's actual authorize() rules per route — frontend hides UI accordingly, but the backend is the real enforcement layer.</div>
         </div>
       </div>
     </div>
@@ -629,7 +627,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
     <div class="field"><label>Type</label>
       <select id="mv-type"><option>Van</option><option>Truck</option><option>Mini</option></select>
     </div>
-    <div class="field"><label>Max Load Capacity</label><input id="mv-cap" placeholder="500 kg"></div>
+    <div class="field"><label>Max Load Capacity (kg)</label><input id="mv-cap" type="number" placeholder="500"></div>
     <div class="field"><label>Odometer</label><input id="mv-odo" type="number" placeholder="0"></div>
     <div class="field"><label>Acquisition Cost</label><input id="mv-cost" type="number" placeholder="600000"></div>
     <div id="mv-error" class="validation-box err" style="display:none;">Registration number already exists.</div>
@@ -661,6 +659,7 @@ td.mono, span.mono{font-family:var(--font-mono);}
   <div class="modal">
     <h3>Log Fuel</h3>
     <div class="field"><label>Vehicle</label><select id="mf-vehicle"></select></div>
+    <div class="field"><label>Trip (optional)</label><select id="mf-trip"><option value="">— None —</option></select></div>
     <div class="field"><label>Date</label><input id="mf-date" type="date" value="2026-07-12"></div>
     <div class="field"><label>Liters</label><input id="mf-liters" type="number" placeholder="40"></div>
     <div class="field"><label>Cost</label><input id="mf-cost" type="number" placeholder="3000"></div>
@@ -675,11 +674,27 @@ td.mono, span.mono{font-family:var(--font-mono);}
   <div class="modal">
     <h3>Add Expense</h3>
     <div class="field"><label>Trip</label><select id="me-trip"></select></div>
-    <div class="field"><label>Toll</label><input id="me-toll" type="number" value="0"></div>
-    <div class="field"><label>Other</label><input id="me-other" type="number" value="0"></div>
+    <div class="field"><label>Vehicle (optional)</label><select id="me-vehicle"><option value="">— None —</option></select></div>
+    <div class="field"><label>Type</label>
+      <select id="me-type"><option>Toll</option><option>Parking</option><option>Miscellaneous</option></select>
+    </div>
+    <div class="field"><label>Amount</label><input id="me-amount" type="number" value="0"></div>
+    <div class="field"><label>Date</label><input id="me-date" type="date" value="2026-07-12"></div>
     <div class="modal-actions">
       <button class="btn btn-amber" onclick="saveExpense()">Save</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-expense')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-complete-trip">
+  <div class="modal">
+    <h3>Complete Trip</h3>
+    <div class="field"><label>Actual Distance (km)</label><input id="ct-distance" type="number" placeholder="40"></div>
+    <div class="field"><label>Fuel Consumed (L)</label><input id="ct-fuel" type="number" placeholder="5"></div>
+    <div class="modal-actions">
+      <button class="btn btn-amber" onclick="submitCompleteTrip()">Complete</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-complete-trip')">Cancel</button>
     </div>
   </div>
 </div>
@@ -794,84 +809,184 @@ const reportsApi = {
   },
 };
 
-/* ---------------- STATE ---------------- */
+/* ---------------- ENUM <-> DISPLAY MAPS ----------------
+   The backend uses UPPER_SNAKE enums. These maps are the ONLY place
+   that translates them to/from the friendly labels shown in the UI. */
+const ROLE_TO_DISPLAY = {
+  FLEET_MANAGER: 'Fleet Manager',
+  DRIVER: 'Driver',
+  SAFETY_OFFICER: 'Safety Officer',
+  FINANCIAL_ANALYST: 'Financial Analyst',
+};
+const ROLE_INIT = {'Fleet Manager':'FM','Driver':'DR','Safety Officer':'SO','Financial Analyst':'FA'};
+
+const VEHICLE_TYPE_TO_ENUM = {Van:'VAN', Truck:'TRUCK', Mini:'MINI'};
+const VEHICLE_TYPE_LABEL = {VAN:'Van', TRUCK:'Truck', MINI:'Mini'};
+const VEHICLE_STATUS_LABEL = {AVAILABLE:'Available', ON_TRIP:'On Trip', IN_SHOP:'In Shop', RETIRED:'Retired'};
+const DRIVER_STATUS_LABEL = {AVAILABLE:'Available', ON_TRIP:'On Trip', OFF_DUTY:'Off Duty', SUSPENDED:'Suspended'};
+const TRIP_STATUS_LABEL = {DRAFT:'Draft', DISPATCHED:'Dispatched', COMPLETED:'Completed', CANCELLED:'Cancelled'};
+const MAINT_STATUS_LABEL = {ACTIVE:'Active', COMPLETED:'Completed'};
+
+/* ---------------- NAV ---------------- */
 const NAV_ITEMS = [
   {id:'dashboard', label:'Dashboard', roles:['Driver','Fleet Manager','Safety Officer','Financial Analyst']},
-  {id:'fleet', label:'Fleet', roles:['Fleet Manager','Financial Analyst']},
-  {id:'drivers', label:'Drivers', roles:['Safety Officer']},
-  {id:'trips', label:'Trips', roles:['Driver']},
-  {id:'maintenance', label:'Maintenance', roles:['Fleet Manager']},
-  {id:'fuel', label:'Fuel & Expenses', roles:['Financial Analyst']},
-  {id:'analytics', label:'Analytics', roles:['Financial Analyst','Fleet Manager']},
+  {id:'fleet', label:'Fleet', roles:['Fleet Manager','Safety Officer','Financial Analyst']},
+  {id:'drivers', label:'Drivers', roles:['Fleet Manager','Safety Officer','Financial Analyst','Driver']},
+  {id:'trips', label:'Trips', roles:['Fleet Manager','Safety Officer','Financial Analyst','Driver']},
+  {id:'maintenance', label:'Maintenance', roles:['Fleet Manager','Safety Officer','Financial Analyst']},
+  {id:'fuel', label:'Fuel & Expenses', roles:['Fleet Manager','Safety Officer','Financial Analyst']},
+  {id:'analytics', label:'Analytics', roles:['Fleet Manager','Financial Analyst']},
   {id:'settings', label:'Settings', roles:['Driver','Fleet Manager','Safety Officer','Financial Analyst']},
 ];
+/* NOTE: nav visibility above is UX only. The backend's authorize() calls are
+   the real gate — e.g. Safety Officer can see Fleet but only Fleet Manager
+   can create/edit vehicles; Driver can see Drivers/Trips read-only. Buttons
+   for actions a role can't perform are hidden in the relevant render function. */
 
+/* ---------------- STATE ----------------
+   Holds the last data fetched from the backend. Never hand-written mock
+   data — every array here is populated by an api call. */
 let state = {
-  currentRole: 'Driver',
-  vehicles: [
-    {reg:'GJ01AB4521', name:'VAN-05', type:'Van', capacity:500, odometer:74000, cost:620000, status:'Available'},
-    {reg:'GJ01AB9981', name:'TRUCK-11', type:'Truck', capacity:5000, odometer:182000, cost:2450000, status:'On Trip'},
-    {reg:'GJ01AB1120', name:'MINI-03', type:'Mini', capacity:1000, odometer:66000, cost:410000, status:'In Shop'},
-    {reg:'GJ01AB0087', name:'VAN-09', type:'Van', capacity:750, odometer:241900, cost:590000, status:'Retired'},
-    {reg:'GJ01AB3390', name:'TRUCK-04', type:'Truck', capacity:4000, odometer:95000, cost:2100000, status:'On Trip'},
-    {reg:'GJ01AB7742', name:'MINI-08', type:'Mini', capacity:900, odometer:31000, cost:380000, status:'Available'},
-  ],
-  drivers: [
-    {name:'Alex', license:'DL-88213', cat:'LMV', expiry:'2028-12-01', contact:'98765xxxxx', tripCompl:'96%', safety:96, status:'Available'},
-    {name:'John', license:'DL-44120', cat:'HMV', expiry:'2025-03-01', contact:'98220xxxxx', tripCompl:'81%', safety:81, status:'Suspended'},
-    {name:'Priya', license:'DL-77031', cat:'LMV', expiry:'2027-08-01', contact:'99110xxxxx', tripCompl:'99%', safety:99, status:'On Trip'},
-    {name:'Suresh', license:'DL-90045', cat:'HMV', expiry:'2027-01-01', contact:'97440xxxxx', tripCompl:'88%', safety:88, status:'Off Duty'},
-  ],
-  trips: [
-    {id:'TR001', vehicle:'VAN-05', driver:'Alex', source:'Gandhinagar Depot', dest:'Ahmedabad Hub', status:'Dispatched', eta:'45 min', cargo:450},
-    {id:'TR002', vehicle:'TRK-12', driver:'John', source:'Vatva', dest:'Sanand', status:'Completed', eta:'—', cargo:900},
-    {id:'TR003', vehicle:'MINI-08', driver:'Priya', source:'Kalol', dest:'Mansa', status:'Dispatched', eta:'1h 10m', cargo:300},
-    {id:'TR004', vehicle:'TRUCK-04', driver:'Suresh', source:'Vatva Industrial Area', dest:'Sanand Warehouse', status:'Draft', eta:'Awaiting driver', cargo:0},
-    {id:'TR006', vehicle:'—', driver:'—', source:'Mansa', dest:'Kalol Depot', status:'Cancelled', eta:'Vehicle went to shop', cargo:0},
-  ],
-  maintenance: [
-    {vehicle:'VAN-05', type:'Oil Change', cost:2500, date:'2026-07-07', status:'Active'},
-    {vehicle:'TRUCK-11', type:'Engine Repair', cost:18000, date:'2026-07-02', status:'Completed'},
-    {vehicle:'MINI-03', type:'Tyre Replace', cost:6200, date:'2026-07-05', status:'Active'},
-  ],
-  fuel: [
-    {vehicle:'VAN-05', date:'05 Jul 2026', liters:42, cost:3150},
-    {vehicle:'TRUCK-11', date:'06 Jul 2026', liters:110, cost:8400},
-    {vehicle:'MINI-08', date:'06 Jul 2026', liters:28, cost:2050},
-  ],
-  expenses: [
-    {trip:'TR001', vehicle:'VAN-05', toll:120, other:0, maint:0, status:'Available'},
-    {trip:'TR002', vehicle:'TRK-12', toll:340, other:150, maint:18000, status:'Completed'},
-  ]
+  currentRole: null,
+  currentUser: null,   // { id, name, email, role }
+  myDriverId: null,     // resolved for Driver role by matching driver.userId === currentUser.id
+  vehicles: [],
+  drivers: [],
+  trips: [],
+  maintenance: [],
+  fuel: [],
+  expenses: [],
+  dashboard: null,
 };
 
-const ROLE_INIT = {'Fleet Manager':'FM','Driver':'RK','Safety Officer':'SO','Financial Analyst':'FA'};
-
 /* ---------------- LOGIN ---------------- */
-function doLogin(){
-  const role = document.getElementById('login-role').value;
+async function doLogin(){
   const email = document.getElementById('login-email').value.trim();
-  if(!email){
-    document.getElementById('login-error').classList.add('show');
+  const password = document.getElementById('login-pass').value;
+  const errBox = document.getElementById('login-error');
+  errBox.classList.remove('show');
+
+  if(!email || !password){
+    errBox.textContent = 'Email and password are required.';
+    errBox.classList.add('show');
     return;
   }
-  document.getElementById('login-error').classList.remove('show');
-  state.currentRole = role;
+
+  try{
+    const result = await authApi.login(email, password);
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('user', JSON.stringify(result.user));
+    await onAuthenticated(result.user);
+  }catch(err){
+    errBox.textContent = err.message || 'Invalid credentials.';
+    errBox.classList.add('show');
+  }
+}
+
+async function onAuthenticated(user){
+  state.currentUser = user;
+  state.currentRole = ROLE_TO_DISPLAY[user.role] || user.role;
+
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').classList.add('active');
-  document.getElementById('topbar-role').textContent = role;
-  document.getElementById('topbar-avatar').textContent = ROLE_INIT[role] || 'U';
+  document.getElementById('topbar-name').textContent = user.name || user.email;
+  document.getElementById('topbar-role').textContent = state.currentRole;
+  document.getElementById('topbar-avatar').textContent = ROLE_INIT[state.currentRole] || 'U';
+
   buildNav();
-  navigate(defaultViewFor(role));
-  renderAll();
+
+  try{
+    await loadAllForRole();
+  }catch(err){
+    toast(err.message || 'Failed to load data', true);
+  }
+
+  navigate(defaultViewFor(state.currentRole));
 }
+
 function doLogout(){
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  state.currentUser = null;
+  state.currentRole = null;
   document.getElementById('app-screen').classList.remove('active');
   document.getElementById('login-screen').style.display='flex';
 }
+
 function defaultViewFor(role){
   const item = NAV_ITEMS.find(n=>n.roles.includes(role) && n.id!=='settings');
   return item ? item.id : 'dashboard';
+}
+
+// Resume session on page load if a token is already stored
+(function tryResumeSession(){
+  const token = localStorage.getItem('token');
+  const userRaw = localStorage.getItem('user');
+  if(token && userRaw){
+    try{
+      const user = JSON.parse(userRaw);
+      window.addEventListener('DOMContentLoaded', ()=> onAuthenticated(user));
+    }catch{ /* corrupt storage, ignore and show login */ }
+  }
+})();
+
+/* ---------------- DATA LOADING ----------------
+   Everything the current role is allowed to see is loaded once after
+   login. Mutations re-fetch only the affected resource (see each
+   save/close/dispatch/etc function below). */
+async function loadAllForRole(){
+  const role = state.currentRole;
+  const jobs = [];
+
+  jobs.push(loadDashboard());
+  jobs.push(loadTrips());
+
+  if(['Fleet Manager','Safety Officer','Financial Analyst'].includes(role)){
+    jobs.push(loadVehicles());
+  }
+  jobs.push(loadDrivers()); // all four roles can read drivers
+
+  if(['Fleet Manager','Safety Officer','Financial Analyst'].includes(role)){
+    jobs.push(loadMaintenance());
+    jobs.push(loadFuel());
+    jobs.push(loadExpenses());
+  }
+
+  await Promise.all(jobs);
+
+  if(role === 'Driver'){
+    const mine = state.drivers.find(d => d.userId === state.currentUser.id);
+    state.myDriverId = mine ? mine.id : null;
+  }
+}
+
+async function loadDashboard(){
+  try{ state.dashboard = await dashboardApi.get(); }
+  catch(err){ toast(err.message || 'Failed to load dashboard', true); }
+}
+async function loadVehicles(query=''){
+  try{ const res = await vehiclesApi.list(query); state.vehicles = res.data || []; }
+  catch(err){ toast(err.message || 'Failed to load vehicles', true); }
+}
+async function loadDrivers(){
+  try{ const res = await driversApi.list(); state.drivers = res.data || []; }
+  catch(err){ toast(err.message || 'Failed to load drivers', true); }
+}
+async function loadTrips(){
+  try{ const res = await tripsApi.list(); state.trips = res.data || []; }
+  catch(err){ toast(err.message || 'Failed to load trips', true); }
+}
+async function loadMaintenance(){
+  try{ state.maintenance = await maintenanceApi.list(); }
+  catch(err){ toast(err.message || 'Failed to load maintenance logs', true); }
+}
+async function loadFuel(){
+  try{ const res = await fuelApi.list(); state.fuel = res.data || []; }
+  catch(err){ toast(err.message || 'Failed to load fuel logs', true); }
+}
+async function loadExpenses(){
+  try{ const res = await expensesApi.list(); state.expenses = res.data || []; }
+  catch(err){ toast(err.message || 'Failed to load expenses', true); }
 }
 
 /* ---------------- NAV ---------------- */
@@ -898,9 +1013,9 @@ function navigate(id){
 }
 
 /* ---------------- HELPERS ---------------- */
-function statusChip(status){
-  const key = status.toLowerCase().replace(/\s/g,'');
-  return `<span class="status-chip st-${key}">${status}</span>`;
+function statusChip(label){
+  const key = label.toLowerCase().replace(/\s/g,'');
+  return `<span class="status-chip st-${key}">${label}</span>`;
 }
 function toast(msg, isErr){
   const t = document.getElementById('toast');
@@ -913,323 +1028,471 @@ function toast(msg, isErr){
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function fmt(n){ return Number(n).toLocaleString('en-IN'); }
+function vehicleLabel(v){ return v ? `${v.name} (${v.regNumber})` : '—'; }
+function findVehicle(id){ return state.vehicles.find(v=>v.id===id); }
+function findDriver(id){ return state.drivers.find(d=>d.id===id); }
 
-/* ---------------- RENDER: DASHBOARD ---------------- */
+/* ---------------- RENDER: DASHBOARD ----------------
+   All KPI numbers come straight from GET /api/dashboard — never
+   recomputed on the frontend, per integration rules. */
 function renderDashboard(){
-  const v = state.vehicles;
-  const active = v.filter(x=>x.status!=='Retired').length;
-  const available = v.filter(x=>x.status==='Available').length;
-  const inShop = v.filter(x=>x.status==='In Shop').length;
-  const activeTrips = state.trips.filter(t=>t.status==='Dispatched').length;
-  const pendingTrips = state.trips.filter(t=>t.status==='Draft').length;
-  const onDuty = state.drivers.filter(d=>d.status!=='Off Duty' && d.status!=='Suspended').length;
-  const util = Math.round((v.filter(x=>x.status==='On Trip').length / Math.max(1,active)) * 100);
-
+  const d = state.dashboard;
+  if(!d){
+    document.getElementById('kpi-grid').innerHTML = `<div class="empty">Loading dashboard…</div>`;
+    return;
+  }
   const kpis = [
-    ['Active Vehicles', active, ''],
-    ['Available Vehicles', available, 'k-green'],
-    ['Vehicles in Maintenance', inShop, 'k-blue'],
-    ['Active Trips', activeTrips, ''],
-    ['Pending Trips', pendingTrips, ''],
-    ['Drivers On Duty', onDuty, 'k-green'],
-    ['Fleet Utilization', util+'%', ''],
+    ['Active Vehicles', d.activeVehicles, ''],
+    ['Available Vehicles', d.availableVehicles, 'k-green'],
+    ['Vehicles in Maintenance', d.vehiclesInMaintenance, 'k-blue'],
+    ['Active Trips', d.activeTrips, ''],
+    ['Pending Trips', d.pendingTrips, ''],
+    ['Drivers On Duty', d.driversOnDuty, 'k-green'],
+    ['Fleet Utilization', d.fleetUtilizationPct + '%', ''],
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(([l,v,c])=>
     `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
 
-  document.getElementById('recent-trips-body').innerHTML = state.trips.slice(0,5).map(t=>`
-    <tr><td class="mono">${t.id}</td><td class="mono">${t.vehicle}</td><td>${t.driver}</td>
-    <td>${statusChip(t.status)}</td><td style="color:var(--ink-dim);font-size:12.5px;">${t.eta}</td></tr>
-  `).join('');
+  const recent = state.trips.slice(0,5);
+  document.getElementById('recent-trips-body').innerHTML = recent.length ? recent.map(t=>{
+    const veh = findVehicle(t.vehicleId), drv = findDriver(t.driverId);
+    return `<tr><td class="mono">${t.id.slice(0,8)}</td><td class="mono">${veh?veh.name:'—'}</td><td>${drv?drv.name:'—'}</td>
+    <td>${statusChip(TRIP_STATUS_LABEL[t.status]||t.status)}</td><td style="color:var(--ink-dim);font-size:12.5px;">${t.status==='DISPATCHED'?'In transit':'—'}</td></tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty">No trips yet.</td></tr>`;
 
-  const statusCounts = {
-    Available: v.filter(x=>x.status==='Available').length,
-    'On Trip': v.filter(x=>x.status==='On Trip').length,
-    'In Shop': v.filter(x=>x.status==='In Shop').length,
-    Retired: v.filter(x=>x.status==='Retired').length,
-  };
-  const colors = {Available:'var(--green)','On Trip':'var(--amber)','In Shop':'var(--blue)',Retired:'var(--red)'};
-  const max = Math.max(1, v.length);
-  document.getElementById('vehicle-status-bars').innerHTML = Object.entries(statusCounts).map(([k,val])=>`
-    <div class="vstat-row"><div class="lbl">${k}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:${(val/max)*100}%;background:${colors[k]}"></div></div>
-    <div class="num">${val}</div></div>
-  `).join('');
+  // Vehicle status breakdown — this is a raw count-by-status view of the
+  // vehicle list already fetched (not a computed dashboard KPI), so it's
+  // fine to derive client-side. Only shown to roles that loaded vehicles.
+  if(state.vehicles.length){
+    const statusCounts = {AVAILABLE:0, ON_TRIP:0, IN_SHOP:0, RETIRED:0};
+    state.vehicles.forEach(v=>{ statusCounts[v.status] = (statusCounts[v.status]||0)+1; });
+    const max = Math.max(1, state.vehicles.length);
+    const colors = {AVAILABLE:'var(--green)', ON_TRIP:'var(--amber)', IN_SHOP:'var(--blue)', RETIRED:'var(--red)'};
+    document.getElementById('vehicle-status-bars').innerHTML = Object.entries(statusCounts).map(([k,val])=>`
+      <div class="vstat-row"><div class="lbl">${VEHICLE_STATUS_LABEL[k]}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(val/max)*100}%;background:${colors[k]}"></div></div>
+      <div class="num">${val}</div></div>`).join('');
+  } else {
+    document.getElementById('vehicle-status-bars').innerHTML = `<div class="empty">No vehicle data for this role.</div>`;
+  }
 }
 
 /* ---------------- RENDER: FLEET ---------------- */
-function renderFleet(){
-  const typeF = document.getElementById('fleet-filter-type').value;
-  const statusF = document.getElementById('fleet-filter-status').value;
-  const q = document.getElementById('fleet-search').value.toLowerCase();
-  let rows = state.vehicles.filter(v=>
-    (typeF==='Type: All' || v.type===typeF) &&
-    (statusF==='Status: All' || v.status===statusF) &&
-    (v.reg.toLowerCase().includes(q))
-  );
+async function renderFleet(){
+  const canManage = state.currentRole === 'Fleet Manager';
+  document.querySelector('#view-fleet .btn-amber').style.display = canManage ? '' : 'none';
+
+  const typeSel = document.getElementById('fleet-filter-type').value;
+  const statusSel = document.getElementById('fleet-filter-status').value;
+  const q = document.getElementById('fleet-search').value.trim();
+
+  const params = new URLSearchParams();
+  if(typeSel !== 'Type: All') params.set('type', VEHICLE_TYPE_TO_ENUM[typeSel]);
+  if(statusSel !== 'Status: All') params.set('status', statusSel.toUpperCase().replace(/\s/g,'_'));
+  if(q) params.set('search', q);
+  const qs = params.toString() ? '?'+params.toString() : '';
+
+  await loadVehicles(qs);
+
+  const rows = state.vehicles;
   document.getElementById('fleet-body').innerHTML = rows.length ? rows.map(v=>`
-    <tr><td class="mono">${v.reg}</td><td>${v.name}</td><td>${v.type}</td>
-    <td>${typeof v.capacity==='number' ? v.capacity+' kg' : v.capacity}</td>
-    <td class="mono">${fmt(v.odometer)}</td><td class="mono">₹${fmt(v.cost)}</td>
-    <td>${statusChip(v.status)}</td></tr>
+    <tr><td class="mono">${v.regNumber}</td><td>${v.name}</td><td>${VEHICLE_TYPE_LABEL[v.type]||v.type}</td>
+    <td class="mono">${fmt(v.maxLoadKg)} kg</td>
+    <td class="mono">${fmt(v.odometer)}</td><td class="mono">₹${fmt(v.acquisitionCost)}</td>
+    <td>${statusChip(VEHICLE_STATUS_LABEL[v.status]||v.status)}</td></tr>
   `).join('') : `<tr><td colspan="7" class="empty">No vehicles match these filters.</td></tr>`;
 }
+
 function openVehicleModal(){
-  document.getElementById('mv-reg').value='';
-  document.getElementById('mv-name').value='';
-  document.getElementById('mv-cap').value='';
-  document.getElementById('mv-odo').value='';
-  document.getElementById('mv-cost').value='';
+  ['mv-reg','mv-name','mv-cap','mv-odo','mv-cost'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mv-error').style.display='none';
   openModal('modal-vehicle');
 }
-function saveVehicle(){
-  const reg = document.getElementById('mv-reg').value.trim().toUpperCase();
-  if(!reg){ toast('Registration number is required', true); return; }
-  if(state.vehicles.some(v=>v.reg===reg)){
-    document.getElementById('mv-error').style.display='block';
+async function saveVehicle(){
+  const payload = {
+    regNumber: document.getElementById('mv-reg').value.trim().toUpperCase(),
+    name: document.getElementById('mv-name').value.trim(),
+    type: VEHICLE_TYPE_TO_ENUM[document.getElementById('mv-type').value],
+    maxLoadKg: Number(document.getElementById('mv-cap').value),
+    odometer: Number(document.getElementById('mv-odo').value) || 0,
+    acquisitionCost: Number(document.getElementById('mv-cost').value) || 0,
+  };
+  if(!payload.regNumber || !payload.name || !payload.maxLoadKg){
+    toast('Registration number, name, and max load are required', true);
     return;
   }
-  const name = document.getElementById('mv-name').value.trim() || 'UNNAMED';
-  const type = document.getElementById('mv-type').value;
-  const cap = document.getElementById('mv-cap').value.trim() || '0 kg';
-  const odo = Number(document.getElementById('mv-odo').value) || 0;
-  const cost = Number(document.getElementById('mv-cost').value) || 0;
-  state.vehicles.push({reg, name, type, capacity: cap, odometer: odo, cost, status:'Available'});
-  closeModal('modal-vehicle');
-  toast('Vehicle '+reg+' registered');
-  renderAll();
+  try{
+    await vehiclesApi.create(payload);
+    closeModal('modal-vehicle');
+    toast('Vehicle '+payload.regNumber+' registered');
+    await renderFleet();
+    await loadDashboard(); renderDashboard();
+  }catch(err){
+    if(err.status===409){
+      document.getElementById('mv-error').textContent = err.message;
+      document.getElementById('mv-error').style.display='block';
+    } else {
+      toast(err.message || 'Failed to create vehicle', true);
+    }
+  }
 }
 
 /* ---------------- RENDER: DRIVERS ---------------- */
 function renderDrivers(){
-  const today = new Date('2026-07-12');
-  document.getElementById('drivers-body').innerHTML = state.drivers.map(d=>{
-    const expDate = new Date(d.expiry);
+  const canManage = ['Fleet Manager','Safety Officer'].includes(state.currentRole);
+  const addBtn = document.querySelector('#view-drivers .btn-amber');
+  if(addBtn) addBtn.style.display = canManage ? '' : 'none';
+
+  const today = new Date();
+  document.getElementById('drivers-body').innerHTML = state.drivers.length ? state.drivers.map(d=>{
+    const expDate = new Date(d.licenseExpiry);
     const expired = expDate < today;
     const expLabel = expDate.toLocaleDateString('en-GB',{month:'2-digit',year:'numeric'}) + (expired ? ' EXPIRED':'');
-    return `<tr><td>${d.name}</td><td class="mono">${d.license}</td><td>${d.cat}</td>
+    return `<tr><td>${d.name}</td><td class="mono">${d.licenseNumber}</td><td>${d.licenseCategory}</td>
     <td style="${expired?'color:var(--red)':''}" class="mono">${expLabel}</td>
-    <td class="mono">${d.contact}</td><td class="mono">${d.tripCompl}</td>
-    <td class="mono">${d.safety}%</td><td>${statusChip(d.status)}</td></tr>`;
-  }).join('');
+    <td class="mono">${d.contact}</td><td class="mono">—</td>
+    <td class="mono">${d.safetyScore}%</td><td>${statusChip(DRIVER_STATUS_LABEL[d.status]||d.status)}</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty">No drivers found.</td></tr>`;
 }
 function openDriverModal(){
   ['md-name','md-license','md-expiry','md-contact'].forEach(id=>document.getElementById(id).value='');
   openModal('modal-driver');
 }
-function saveDriver(){
-  const name = document.getElementById('md-name').value.trim();
-  if(!name){ toast('Driver name is required', true); return; }
-  state.drivers.push({
-    name,
-    license: document.getElementById('md-license').value.trim() || '—',
-    cat: document.getElementById('md-cat').value,
-    expiry: document.getElementById('md-expiry').value || '2028-01-01',
-    contact: document.getElementById('md-contact').value.trim() || '—',
-    tripCompl:'0%', safety:100, status:'Available'
-  });
-  closeModal('modal-driver');
-  toast('Driver '+name+' added');
-  renderAll();
+async function saveDriver(){
+  const payload = {
+    name: document.getElementById('md-name').value.trim(),
+    licenseNumber: document.getElementById('md-license').value.trim(),
+    licenseCategory: document.getElementById('md-cat').value,
+    licenseExpiry: document.getElementById('md-expiry').value,
+    contact: document.getElementById('md-contact').value.trim(),
+  };
+  if(!payload.name || !payload.licenseNumber || !payload.licenseExpiry || !payload.contact){
+    toast('All driver fields are required', true);
+    return;
+  }
+  try{
+    await driversApi.create(payload);
+    closeModal('modal-driver');
+    toast('Driver '+payload.name+' added');
+    await loadDrivers(); renderDrivers();
+    await loadDashboard(); renderDashboard();
+  }catch(err){
+    toast(err.message || 'Failed to add driver (duplicate license?)', true);
+  }
 }
 
-/* ---------------- RENDER: TRIPS ---------------- */
-function renderTrips(){
-  const vehSel = document.getElementById('trip-vehicle');
-  const drvSel = document.getElementById('trip-driver');
-  const availVeh = state.vehicles.filter(v=>v.status==='Available');
-  const today = new Date('2026-07-12');
-  const availDrv = state.drivers.filter(d=>d.status==='Available' && new Date(d.expiry) >= today);
-  vehSel.innerHTML = availVeh.map(v=>`<option value="${v.reg}">${v.name} - ${typeof v.capacity==='number'?v.capacity+' kg':v.capacity} capacity</option>`).join('') || '<option>No available vehicles</option>';
-  drvSel.innerHTML = availDrv.map(d=>`<option value="${d.name}">${d.name}</option>`).join('') || '<option>No available drivers</option>';
+/* ---------------- RENDER: TRIPS ----------------
+   Fleet Manager: full create / dispatch / cancel.
+   Safety Officer / Financial Analyst: read-only.
+   Driver: read-only, restricted to their own trips, with a Complete action
+   on their own DISPATCHED trip (backend enforces this ownership check too). */
+let _pendingCompleteTripId = null;
 
-  document.getElementById('live-board').innerHTML = state.trips.map(t=>{
-    const cls = t.status==='Cancelled' ? 'st-cancelled-l' : (t.status==='Draft' ? 'st-draft-l':'');
+async function renderTrips(){
+  const role = state.currentRole;
+  const createPanel = document.getElementById('create-trip-panel');
+  createPanel.style.display = role === 'Fleet Manager' ? '' : 'none';
+
+  if(role === 'Fleet Manager'){
+    let availVeh = [], availDrv = [];
+    try{ availVeh = await vehiclesApi.available(); }catch(err){ toast(err.message||'Failed to load available vehicles', true); }
+    try{ availDrv = await driversApi.available(); }catch(err){ toast(err.message||'Failed to load available drivers', true); }
+
+    const vehSel = document.getElementById('trip-vehicle');
+    const drvSel = document.getElementById('trip-driver');
+    vehSel.innerHTML = availVeh.map(v=>`<option value="${v.id}" data-cap="${v.maxLoadKg}">${v.name} (${v.regNumber}) — ${v.maxLoadKg} kg</option>`).join('') || '<option value="">No available vehicles</option>';
+    drvSel.innerHTML = availDrv.map(d=>`<option value="${d.id}">${d.name}</option>`).join('') || '<option value="">No available drivers</option>';
+    validateTrip();
+  }
+
+  const visibleTrips = role === 'Driver'
+    ? state.trips.filter(t => t.driverId === state.myDriverId)
+    : state.trips;
+
+  document.getElementById('live-board').innerHTML = visibleTrips.length ? visibleTrips.map(t=>{
+    const veh = findVehicle(t.vehicleId), drv = findDriver(t.driverId);
+    const label = TRIP_STATUS_LABEL[t.status] || t.status;
+    const cls = t.status==='CANCELLED' ? 'st-cancelled-l' : (t.status==='DRAFT' ? 'st-draft-l':'');
+    const isMine = role === 'Driver' && t.driverId === state.myDriverId;
+    let actions = '';
+    if(role === 'Fleet Manager'){
+      if(t.status==='DRAFT') actions += `<button class="btn btn-amber btn-sm" onclick="doDispatch('${t.id}')">Dispatch</button> `;
+      if(t.status==='DRAFT' || t.status==='DISPATCHED') actions += `<button class="btn btn-ghost btn-sm" onclick="doCancel('${t.id}')">Cancel</button> `;
+      if(t.status==='DISPATCHED') actions += `<button class="btn btn-ghost btn-sm" onclick="openCompleteModal('${t.id}')">Complete</button>`;
+    } else if(isMine && t.status==='DISPATCHED'){
+      actions = `<button class="btn btn-amber btn-sm" onclick="openCompleteModal('${t.id}')">Complete Trip</button>`;
+    }
     return `<div class="live-card ${cls}">
-      <div class="live-top"><span class="live-id">${t.id}</span><span class="live-veh">${t.vehicle} ${t.driver!=='—' ? '/ '+t.driver.toUpperCase():''}</span></div>
-      <div class="live-route">${t.source} → ${t.dest}</div>
-      <div class="live-bottom">${statusChip(t.status)}<span class="live-eta">${t.eta}</span></div>
+      <div class="live-top"><span class="live-id">${t.id.slice(0,8)}</span><span class="live-veh">${veh?veh.name:'—'} ${drv?'/ '+drv.name.toUpperCase():''}</span></div>
+      <div class="live-route">${t.source} → ${t.destination}</div>
+      <div class="live-bottom">${statusChip(label)}${actions ? '<span style="margin-left:auto;display:flex;gap:6px;">'+actions+'</span>' : ''}</div>
     </div>`;
-  }).join('');
-
-  validateTrip();
+  }).join('') : `<div class="empty">No trips to show.</div>`;
 }
+
 function validateTrip(){
-  const vehReg = document.getElementById('trip-vehicle').value;
-  const vehicle = state.vehicles.find(v=>v.reg===vehReg);
+  const vehSel = document.getElementById('trip-vehicle');
+  const opt = vehSel.selectedOptions[0];
   const cargo = Number(document.getElementById('trip-cargo').value) || 0;
   const box = document.getElementById('trip-validation');
   const btn = document.getElementById('trip-dispatch-btn');
-  if(!vehicle){
+  if(!opt || !opt.value){
     box.className='validation-box';
     box.textContent='Select a vehicle to check capacity.';
     btn.disabled = true;
     return;
   }
-  const cap = typeof vehicle.capacity==='number' ? vehicle.capacity : parseInt(vehicle.capacity) || 0;
+  const cap = Number(opt.dataset.cap) || 0;
   if(cargo > cap){
     box.className='validation-box err';
-    box.innerHTML = `Vehicle Capacity: ${cap} kg<br>Cargo Weight: ${cargo} kg<br>❌ Capacity exceeded by ${cargo-cap} kg — dispatch blocked`;
+    box.innerHTML = `Vehicle Capacity: ${cap} kg<br>Cargo Weight: ${cargo} kg<br>❌ Capacity exceeded by ${cargo-cap} kg — cannot create trip`;
     btn.disabled = true;
-    btn.textContent='Dispatch (disabled)';
+    btn.textContent='Create Trip (disabled)';
   } else {
     box.className='validation-box ok';
-    box.innerHTML = `Vehicle Capacity: ${cap} kg<br>Cargo Weight: ${cargo} kg<br>✓ Within capacity — ready to dispatch`;
+    box.innerHTML = `Vehicle Capacity: ${cap} kg<br>Cargo Weight: ${cargo} kg<br>✓ Within capacity`;
     btn.disabled = false;
-    btn.textContent='Dispatch';
+    btn.textContent='Create Trip';
   }
 }
-function dispatchTrip(){
-  const vehReg = document.getElementById('trip-vehicle').value;
-  const driverName = document.getElementById('trip-driver').value;
-  const vehicle = state.vehicles.find(v=>v.reg===vehReg);
-  const driver = state.drivers.find(d=>d.name===driverName);
-  if(!vehicle || !driver){ toast('Select a vehicle and driver', true); return; }
-  const id = 'TR' + String(state.trips.length+1).padStart(3,'0');
-  state.trips.unshift({
-    id, vehicle: vehicle.name, driver: driver.name,
-    source: document.getElementById('trip-source').value,
-    dest: document.getElementById('trip-dest').value,
-    status:'Dispatched', eta: Math.round(Math.random()*50+15)+' min',
-    cargo: Number(document.getElementById('trip-cargo').value)
-  });
-  vehicle.status='On Trip';
-  driver.status='On Trip';
-  toast('Trip '+id+' dispatched — vehicle & driver set to On Trip');
-  resetTripForm();
-  renderAll();
+
+async function createTripHandler(){
+  const payload = {
+    source: document.getElementById('trip-source').value.trim(),
+    destination: document.getElementById('trip-dest').value.trim(),
+    vehicleId: document.getElementById('trip-vehicle').value,
+    driverId: document.getElementById('trip-driver').value,
+    cargoWeightKg: Number(document.getElementById('trip-cargo').value),
+    plannedDistanceKm: Number(document.getElementById('trip-distance').value),
+  };
+  if(!payload.vehicleId || !payload.driverId){
+    toast('Select a vehicle and driver', true);
+    return;
+  }
+  try{
+    await tripsApi.create(payload);
+    toast('Trip created as Draft — dispatch it from the Live Board');
+    resetTripForm();
+    await loadTrips();
+    await loadDashboard(); renderDashboard();
+    renderTrips();
+  }catch(err){
+    toast(err.message || 'Failed to create trip', true);
+  }
 }
 function resetTripForm(){
   document.getElementById('trip-cargo').value=700;
   document.getElementById('trip-distance').value=38;
-  renderTrips();
+}
+
+async function doDispatch(tripId){
+  try{
+    await tripsApi.dispatch(tripId);
+    toast('Trip dispatched — vehicle & driver set to On Trip');
+    await Promise.all([loadTrips(), loadVehicles(), loadDrivers(), loadDashboard()]);
+    renderAll();
+  }catch(err){
+    toast(err.message || 'Failed to dispatch trip', true);
+  }
+}
+async function doCancel(tripId){
+  try{
+    await tripsApi.cancel(tripId);
+    toast('Trip cancelled');
+    await Promise.all([loadTrips(), loadVehicles(), loadDrivers(), loadDashboard()]);
+    renderAll();
+  }catch(err){
+    toast(err.message || 'Failed to cancel trip', true);
+  }
+}
+function openCompleteModal(tripId){
+  _pendingCompleteTripId = tripId;
+  document.getElementById('ct-distance').value='';
+  document.getElementById('ct-fuel').value='';
+  openModal('modal-complete-trip');
+}
+async function submitCompleteTrip(){
+  const payload = {
+    actualDistanceKm: Number(document.getElementById('ct-distance').value),
+    fuelConsumedL: Number(document.getElementById('ct-fuel').value),
+  };
+  if(!payload.actualDistanceKm || !payload.fuelConsumedL){
+    toast('Enter actual distance and fuel consumed', true);
+    return;
+  }
+  try{
+    await tripsApi.complete(_pendingCompleteTripId, payload);
+    closeModal('modal-complete-trip');
+    toast('Trip completed — vehicle & driver set to Available');
+    await Promise.all([loadTrips(), loadVehicles(), loadDrivers(), loadDashboard()]);
+    renderAll();
+  }catch(err){
+    toast(err.message || 'Failed to complete trip', true);
+  }
 }
 
 /* ---------------- RENDER: MAINTENANCE ---------------- */
 function renderMaintenance(){
+  const canManage = state.currentRole === 'Fleet Manager';
+  const panel = document.querySelector('#view-maintenance .panel:first-child');
+  if(panel) panel.style.display = canManage ? '' : 'none';
+
   const sel = document.getElementById('maint-vehicle');
-  sel.innerHTML = state.vehicles.filter(v=>v.status!=='Retired').map(v=>`<option>${v.name}</option>`).join('');
-  document.getElementById('service-log-body').innerHTML = state.maintenance.map(m=>`
-    <tr><td class="mono">${m.vehicle}</td><td>${m.type}</td><td class="mono">₹${fmt(m.cost)}</td>
-    <td>${statusChip(m.status==='Active' ? 'In Shop' : 'Completed')}</td></tr>
-  `).join('');
+  sel.innerHTML = state.vehicles.filter(v=>v.status!=='RETIRED').map(v=>`<option value="${v.id}">${v.name} (${v.regNumber})</option>`).join('');
+
+  document.getElementById('service-log-body').innerHTML = state.maintenance.length ? state.maintenance.map(m=>{
+    const canClose = canManage && m.status === 'ACTIVE';
+    return `<tr><td class="mono">${m.vehicle ? m.vehicle.name : '—'}</td><td>${m.serviceType}</td><td class="mono">₹${fmt(m.cost)}</td>
+    <td>${statusChip(MAINT_STATUS_LABEL[m.status]||m.status)}</td>
+    <td>${canClose ? `<button class="btn btn-ghost btn-sm" onclick="closeMaintenance('${m.id}')">Close</button>` : '—'}</td></tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty">No maintenance logs.</td></tr>`;
 }
-function saveMaintenance(){
-  const vehName = document.getElementById('maint-vehicle').value;
-  const type = document.getElementById('maint-type').value.trim() || 'Service';
-  const cost = Number(document.getElementById('maint-cost').value) || 0;
-  const date = document.getElementById('maint-date').value;
-  const status = document.getElementById('maint-status').value;
-  state.maintenance.unshift({vehicle:vehName, type, cost, date, status});
-  const vehicle = state.vehicles.find(v=>v.name===vehName);
-  if(vehicle){
-    if(status==='Active'){ vehicle.status='In Shop'; }
-    else if(vehicle.status!=='Retired'){ vehicle.status='Available'; }
+async function saveMaintenance(){
+  const payload = {
+    vehicleId: document.getElementById('maint-vehicle').value,
+    serviceType: document.getElementById('maint-type').value.trim() || 'Service',
+    cost: Number(document.getElementById('maint-cost').value) || 0,
+    date: document.getElementById('maint-date').value,
+  };
+  if(!payload.vehicleId){ toast('Select a vehicle', true); return; }
+  try{
+    await maintenanceApi.create(payload);
+    toast('Service record logged — vehicle set to In Shop');
+    await Promise.all([loadMaintenance(), loadVehicles(), loadDashboard()]);
+    renderAll();
+  }catch(err){
+    toast(err.message || 'Failed to log maintenance', true);
   }
-  toast('Service record logged for '+vehName+' — status updated');
-  renderAll();
+}
+async function closeMaintenance(id){
+  try{
+    await maintenanceApi.close(id);
+    toast('Maintenance record closed');
+    await Promise.all([loadMaintenance(), loadVehicles(), loadDashboard()]);
+    renderAll();
+  }catch(err){
+    toast(err.message || 'Failed to close maintenance record', true);
+  }
 }
 
 /* ---------------- RENDER: FUEL & EXPENSES ---------------- */
 function renderFuel(){
-  document.getElementById('fuel-body').innerHTML = state.fuel.map(f=>`
-    <tr><td class="mono">${f.vehicle}</td><td class="mono">${f.date}</td>
+  const canManage = state.currentRole === 'Fleet Manager';
+  document.querySelectorAll('#view-fuel .btn-ghost.btn-sm').forEach(b=>b.style.display = canManage ? '' : 'none');
+
+  document.getElementById('fuel-body').innerHTML = state.fuel.length ? state.fuel.map(f=>`
+    <tr><td class="mono">${f.vehicle ? f.vehicle.name : '—'}</td><td class="mono">${new Date(f.date).toLocaleDateString('en-GB')}</td>
     <td class="mono">${f.liters} L</td><td class="mono">₹${fmt(f.cost)}</td></tr>
-  `).join('');
-  document.getElementById('expense-body').innerHTML = state.expenses.map(e=>{
-    const total = e.toll + e.other + e.maint;
-    return `<tr><td class="mono">${e.trip}</td><td class="mono">${e.vehicle}</td>
-    <td class="mono">₹${fmt(e.toll)}</td><td class="mono">₹${fmt(e.other)}</td>
-    <td class="mono">₹${fmt(e.maint)}</td><td class="mono">₹${fmt(total)}</td></tr>`;
-  }).join('');
+  `).join('') : `<tr><td colspan="4" class="empty">No fuel logs.</td></tr>`;
+
+  document.getElementById('expense-body').innerHTML = state.expenses.length ? state.expenses.map(e=>`
+    <tr><td class="mono">${e.trip ? e.trip.id.slice(0,8) : '—'}</td><td class="mono">${e.vehicle ? e.vehicle.name : '—'}</td>
+    <td>${e.type}</td><td class="mono">₹${fmt(e.amount)}</td><td class="mono">${new Date(e.date).toLocaleDateString('en-GB')}</td></tr>
+  `).join('') : `<tr><td colspan="5" class="empty">No expenses logged.</td></tr>`;
+
   const totalFuel = state.fuel.reduce((s,f)=>s+f.cost,0);
   const totalMaint = state.maintenance.reduce((s,m)=>s+m.cost,0);
   document.getElementById('total-op-cost').textContent = '₹'+fmt(totalFuel+totalMaint);
 
-  document.getElementById('mf-vehicle').innerHTML = state.vehicles.map(v=>`<option>${v.name}</option>`).join('');
-  document.getElementById('me-trip').innerHTML = state.trips.map(t=>`<option>${t.id}</option>`).join('');
+  document.getElementById('mf-vehicle').innerHTML = state.vehicles.map(v=>`<option value="${v.id}">${v.name} (${v.regNumber})</option>`).join('');
+  document.getElementById('mf-trip').innerHTML = '<option value="">— None —</option>' + state.trips.map(t=>`<option value="${t.id}">${t.id.slice(0,8)} (${t.source} → ${t.destination})</option>`).join('');
+  document.getElementById('me-trip').innerHTML = state.trips.map(t=>`<option value="${t.id}">${t.id.slice(0,8)} (${t.source} → ${t.destination})</option>`).join('');
+  document.getElementById('me-vehicle').innerHTML = '<option value="">— None —</option>' + state.vehicles.map(v=>`<option value="${v.id}">${v.name} (${v.regNumber})</option>`).join('');
 }
 function openFuelModal(){ openModal('modal-fuel'); }
-function saveFuel(){
-  const vehicle = document.getElementById('mf-vehicle').value;
-  const date = document.getElementById('mf-date').value;
-  const liters = Number(document.getElementById('mf-liters').value)||0;
-  const cost = Number(document.getElementById('mf-cost').value)||0;
-  state.fuel.unshift({vehicle, date: new Date(date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), liters, cost});
-  closeModal('modal-fuel');
-  toast('Fuel log added for '+vehicle);
-  renderAll();
+async function saveFuel(){
+  const payload = {
+    vehicleId: document.getElementById('mf-vehicle').value,
+    tripId: document.getElementById('mf-trip').value || undefined,
+    date: document.getElementById('mf-date').value,
+    liters: Number(document.getElementById('mf-liters').value) || 0,
+    cost: Number(document.getElementById('mf-cost').value) || 0,
+  };
+  if(!payload.vehicleId){ toast('Select a vehicle', true); return; }
+  try{
+    await fuelApi.create(payload);
+    closeModal('modal-fuel');
+    toast('Fuel log added');
+    await loadFuel(); renderFuel();
+  }catch(err){
+    toast(err.message || 'Failed to add fuel log', true);
+  }
 }
 function openExpenseModal(){ openModal('modal-expense'); }
-function saveExpense(){
-  const trip = document.getElementById('me-trip').value;
-  const t = state.trips.find(x=>x.id===trip);
-  const toll = Number(document.getElementById('me-toll').value)||0;
-  const other = Number(document.getElementById('me-other').value)||0;
-  state.expenses.unshift({trip, vehicle: t?t.vehicle:'—', toll, other, maint:0, status:'Draft'});
-  closeModal('modal-expense');
-  toast('Expense added for '+trip);
-  renderAll();
+async function saveExpense(){
+  const payload = {
+    tripId: document.getElementById('me-trip').value,
+    vehicleId: document.getElementById('me-vehicle').value || undefined,
+    type: document.getElementById('me-type').value,
+    amount: Number(document.getElementById('me-amount').value) || 0,
+    date: document.getElementById('me-date').value,
+  };
+  if(!payload.tripId){ toast('Select a trip', true); return; }
+  try{
+    await expensesApi.create(payload);
+    closeModal('modal-expense');
+    toast('Expense added');
+    await loadExpenses(); renderFuel();
+  }catch(err){
+    toast(err.message || 'Failed to add expense', true);
+  }
 }
 
-/* ---------------- RENDER: ANALYTICS ---------------- */
-function renderAnalytics(){
-  const totalFuel = state.fuel.reduce((s,f)=>s+f.cost,0);
-  const totalLiters = state.fuel.reduce((s,f)=>s+f.liters,0);
-  const totalMaint = state.maintenance.reduce((s,m)=>s+m.cost,0);
-  const fuelEff = totalLiters ? (totalLiters*8.4/totalLiters).toFixed(1) : '0.0'; // representative figure
-  const util = Math.round((state.vehicles.filter(v=>v.status==='On Trip').length / Math.max(1,state.vehicles.filter(v=>v.status!=='Retired').length))*100);
-  const opCost = totalFuel+totalMaint;
-  const revenue = 34070*1.5;
-  const acqCost = state.vehicles.reduce((s,v)=>s+(Number(v.cost)||0),0) || 1;
-  const roi = (((revenue-opCost)/acqCost)*100).toFixed(1);
+/* ---------------- RENDER: ANALYTICS ----------------
+   All figures come from GET /api/reports/summary — never recomputed
+   on the frontend. */
+async function renderAnalytics(){
+  let summary;
+  try{ summary = await reportsApi.summary(); }
+  catch(err){ toast(err.message || 'Failed to load report summary', true); return; }
 
   const kpis = [
-    ['Fuel Efficiency', fuelEff+' km/l',''],
-    ['Fleet Utilization', util+'%','k-green'],
-    ['Operational Cost', '₹'+fmt(opCost),''],
-    ['Vehicle ROI', roi+'%','k-blue'],
+    ['Fuel Efficiency', summary.fuelEfficiencyKmPerL + ' km/l', ''],
+    ['Fleet Utilization', summary.fleetUtilizationPct + '%', 'k-green'],
+    ['Operational Cost', '₹'+fmt(summary.operationalCost), ''],
+    ['Vehicle ROI', summary.vehicleRoiPct + '%', 'k-blue'],
   ];
   document.getElementById('analytics-kpis').innerHTML = kpis.map(([l,v,c])=>
     `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
 
-  const revData = [40,55,48,70,62,85,78];
-  document.getElementById('revenue-chart').innerHTML = revData.map(v=>
-    `<div style="flex:1;height:${v}%;background:linear-gradient(180deg,var(--amber),var(--amber-dim));border-radius:2px 2px 0 0;"></div>`).join('');
+  const monthly = summary.monthlyRevenue || [];
+  const maxVal = Math.max(1, ...monthly.map(m=>m.value));
+  document.getElementById('revenue-chart').innerHTML = monthly.length ? monthly.map(m=>
+    `<div title="${m.month}: ₹${fmt(m.value)}" style="flex:1;height:${(m.value/maxVal)*100}%;background:linear-gradient(180deg,var(--amber),var(--amber-dim));border-radius:2px 2px 0 0;"></div>`).join('')
+    : `<div class="empty">No cost data yet.</div>`;
 
-  const costed = [...state.vehicles].sort((a,b)=> (Number(b.cost)||0) < 100000 ? 0 : 0);
-  const topCost = [
-    {name:'TRUCK-11', val:100},
-    {name:'MINI-03', val:31},
-    {name:'VAN-05', val:12},
-  ];
-  document.getElementById('cost-bars').innerHTML = topCost.map(c=>`
-    <div class="vstat-row"><div class="lbl">${c.name}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:${c.val}%;background:var(--amber);"></div></div>
-    <div class="num">${c.val}%</div></div>
-  `).join('');
+  const top = summary.topCostliestVehicles || [];
+  const topMax = Math.max(1, ...top.map(v=>v.cost));
+  document.getElementById('cost-bars').innerHTML = top.length ? top.map(v=>`
+    <div class="vstat-row"><div class="lbl">${v.regNumber}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${(v.cost/topMax)*100}%;background:var(--amber);"></div></div>
+    <div class="num">₹${fmt(v.cost)}</div></div>
+  `).join('') : `<div class="empty">No cost data yet.</div>`;
 }
-function exportCSV(){
-  let csv = 'Registration,Name,Type,Status,Odometer,Cost\n';
-  state.vehicles.forEach(v=>{ csv += `${v.reg},${v.name},${v.type},${v.status},${v.odometer},${v.cost}\n`; });
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'transitops_fleet_report.csv';
-  a.click();
-  toast('CSV exported');
+
+async function exportCSV(){
+  try{
+    const blob = await reportsApi.exportCsv();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'transitops_report.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported');
+  }catch(err){
+    toast(err.message || 'Failed to export CSV', true);
+  }
 }
 
 /* ---------------- RENDER ALL ---------------- */
 function renderAll(){
   renderDashboard();
-  renderFleet();
-  renderDrivers();
-  renderTrips();
-  renderMaintenance();
-  renderFuel();
-  renderAnalytics();
+  if(document.getElementById('view-fleet').classList.contains('active')) renderFleet();
+  if(document.getElementById('view-drivers').classList.contains('active')) renderDrivers();
+  if(document.getElementById('view-trips').classList.contains('active')) renderTrips();
+  if(document.getElementById('view-maintenance').classList.contains('active')) renderMaintenance();
+  if(document.getElementById('view-fuel').classList.contains('active')) renderFuel();
+  if(document.getElementById('view-analytics').classList.contains('active')) renderAnalytics();
 }
 </script>
 </body>
