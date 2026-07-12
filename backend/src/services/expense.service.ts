@@ -40,6 +40,7 @@ export async function getExpenses(filters: ExpenseFilters) {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { date: 'desc' },
+      include: { trip: true, vehicle: true },
     }),
     prisma.expense.count(),
   ]);

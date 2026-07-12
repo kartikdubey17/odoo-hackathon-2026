@@ -38,6 +38,7 @@ export async function getFuelLogs(filters: FuelLogFilters) {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { date: 'desc' },
+      include: { vehicle: true },
     }),
     prisma.fuelLog.count(),
   ]);
