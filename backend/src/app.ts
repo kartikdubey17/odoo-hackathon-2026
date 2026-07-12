@@ -7,6 +7,7 @@ import vehicleRoutes from "./routes/vehicle.routes";
 import driverRoutes from "./routes/driver.routes";
 import tripRoutes from "./routes/trip.routes";
 import maintenanceRoutes from "./routes/maintenance.routes";
+import fuelRoutes from "./routes/fuel.routes";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/fuel", fuelRoutes);
 // Health Check
 app.get("/", (req, res) => {
     res.status(200).json({
